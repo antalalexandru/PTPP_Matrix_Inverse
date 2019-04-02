@@ -63,46 +63,46 @@ public class MatrixUtils {
         return inverseMatrix;
     }
 
+    private static void swapMatrixLines(double[][] matrix, int firstLine, int secondLine) {
+        int numberOfColumns = matrix[firstLine].length;
+        for(int column = 0; column < numberOfColumns; column++) {
+            double aux = matrix[firstLine][column];
+            matrix[firstLine][column] = matrix[secondLine][column];
+            matrix[secondLine][column] = aux;
+        }
+    }
+
     public static double[][] getMatrixInverseSecvential(double[][] matrix) throws MatrixNotInvertibleException {
-
         double[][] modifiedMatrix = addIdentityMatrix(matrix);
-
         int numberOfLines = modifiedMatrix.length;
-
         for(int pivotLine = 0; pivotLine < numberOfLines; pivotLine++) {
-            int pivotColumn = 0;
-
-            while( DoubleUtils.equals(modifiedMatrix[pivotLine][pivotColumn], 0.0) && pivotColumn < numberOfLines) {
-                pivotColumn++;
+            if(DoubleUtils.equals(modifiedMatrix[pivotLine][pivotLine], 0.0)) {
+                // find column to swap
+                int currentLine = pivotLine;
+                while(currentLine < numberOfLines && DoubleUtils.equals(modifiedMatrix[currentLine][pivotLine], 0.0)) {
+                    currentLine++;
+                }
+                if(currentLine == numberOfLines) {
+                    throw new MatrixNotInvertibleException();
+                }
+                swapMatrixLines(modifiedMatrix, pivotLine, currentLine);
             }
-
-            if(pivotColumn == numberOfLines) {
-                throw new MatrixNotInvertibleException();
-            }
-
-            double pivot = modifiedMatrix[pivotLine][pivotColumn];
-
+            double pivot = modifiedMatrix[pivotLine][pivotLine];
             for(int column = 0; column < 2 * numberOfLines; column++) {
                 modifiedMatrix[pivotLine][column] /= pivot;
             }
-
             for(int line = 0; line < numberOfLines; line++) {
-
                 if(line == pivotLine) {
                     continue;
                 }
-
                 for(int column = 0; column < 2 * numberOfLines; column++) {
-                    if(column != pivotColumn) {
-                        modifiedMatrix[line][column] = modifiedMatrix[line][column] - modifiedMatrix[line][pivotColumn] * modifiedMatrix[pivotLine][column] / modifiedMatrix[pivotLine][pivotColumn];
+                    if(column != pivotLine) {
+                        modifiedMatrix[line][column] = modifiedMatrix[line][column] - modifiedMatrix[line][pivotLine] * modifiedMatrix[pivotLine][column] / modifiedMatrix[pivotLine][pivotLine];
                     }
                 }
-
-                modifiedMatrix[line][pivotColumn] = 0;
+                modifiedMatrix[line][pivotLine] = 0;
             }
-
         }
-
         return getInverseMatrix(modifiedMatrix);
     }
 

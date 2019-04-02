@@ -17,6 +17,8 @@ public class Main {
 
     public static void main(String[] args) throws MatrixNotInvertibleException, BadArgumentException, IOException {
 
+        testAlgorithm();
+
         String matrixFile = "./src/com/company/resources/matrix.txt";
         String inverseMatrixFile = "./src/com/company/resources/inverse.txt";
 
@@ -27,6 +29,17 @@ public class Main {
 
         computeInverse(matrixFile, inverseMatrixFile, matrixSize);
 
+    }
+
+    private static void testAlgorithm() throws MatrixNotInvertibleException, BadArgumentException {
+        for(int i = 0; i < 1000; i++) {
+            int matrixSize = 100;
+            double[][] matrix = MatrixUtils.generateRandomMatrix(matrixSize, matrixSize);
+            double[][] inverse = MatrixUtils.getMatrixInverseSecvential(matrix);
+            if( ! MatrixUtils.matrixEquals(MatrixUtils.matrixMultiplication(matrix, inverse), MatrixUtils.getIdentityMatrix(matrixSize))) {
+                throw new RuntimeException("Wrong algorithm");
+            }
+        }
     }
 
 }
