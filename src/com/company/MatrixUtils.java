@@ -19,6 +19,15 @@ public class MatrixUtils {
         }
     }
 
+    public static void printMatrix(double[][] matrix) {
+        for(int i = 0; i < matrix.length; i++) {
+            for(int j = 0; j < matrix[i].length; j++) {
+                System.out.printf("%.4f ", matrix[i][j]);
+            }
+            System.out.println();
+        }
+    }
+
     public static void writeMatrixToFile(final String file, double[][] matrix) throws IOException {
         int numberOfLines = matrix.length;
         int numberOfColumns = matrix[0].length;
@@ -36,7 +45,7 @@ public class MatrixUtils {
         }
     }
 
-    private static double[][] addIdentityMatrix(double[][] initialMatrix) {
+    public static double[][] addIdentityMatrix(double[][] initialMatrix) {
         int numberOfLines = initialMatrix.length;
         double[][] modifiedMatrix = new double[numberOfLines][2 * numberOfLines];
         for(int i = 0; i < numberOfLines; i++) {
@@ -50,7 +59,7 @@ public class MatrixUtils {
         return modifiedMatrix;
     }
 
-    private static double[][] getInverseMatrix(double[][] matrix) {
+    public static double[][] getInverseMatrix(double[][] matrix) {
         int numberOfLines = matrix.length;
         double[][] inverseMatrix = new double[numberOfLines][numberOfLines];
 
@@ -63,7 +72,7 @@ public class MatrixUtils {
         return inverseMatrix;
     }
 
-    private static void swapMatrixLines(double[][] matrix, int firstLine, int secondLine) {
+    public static void swapMatrixLines(double[][] matrix, int firstLine, int secondLine) {
         int numberOfColumns = matrix[firstLine].length;
         for(int column = 0; column < numberOfColumns; column++) {
             double aux = matrix[firstLine][column];
@@ -102,6 +111,65 @@ public class MatrixUtils {
                 }
                 modifiedMatrix[line][pivotLine] = 0;
             }
+        }
+        return getInverseMatrix(modifiedMatrix);
+    }
+
+    public static double[][] getMatrixInverseParallel(double[][] matrix) throws MatrixNotInvertibleException, InterruptedException {
+
+        final int numberOfThreads = 8;
+        Thread[] threads = new Thread[numberOfThreads];
+
+        double[][] modifiedMatrix = addIdentityMatrix(matrix);
+        int numberOfLines = modifiedMatrix.length;
+        for(int pivotLine = 0; pivotLine < numberOfLines; pivotLine++) {
+            if(DoubleUtils.equals(modifiedMatrix[pivotLine][pivotLine], 0.0)) {
+                // find column to swap
+                int currentLine = pivotLine;
+                while(currentLine < numberOfLines && DoubleUtils.equals(modifiedMatrix[currentLine][pivotLine], 0.0)) {
+                    currentLine++;
+                }
+                if(currentLine == numberOfLines) {
+                    throw new MatrixNotInvertibleException();
+                }
+                swapMatrixLines(modifiedMatrix, pivotLine, currentLine);
+            }
+            double pivot = modifiedMatrix[pivotLine][pivotLine];
+
+
+
+            /*for(int column = 0; column < 2 * numberOfLines; column++) {
+                modifiedMatrix[pivotLine][column] /= pivot;
+            }*/
+            /*for(int line = 0; line < numberOfLines; line++) {
+                if(line == pivotLine) {
+                    continue;
+                }
+
+                int elementsPerThread = 2 * numberOfLines / numberOfThreads;
+                for(int i = 0; i < numberOfThreads; i++) {
+                    final int currentThread = i;
+                    final int matrixLine = line;
+                    final int pLine = pivotLine;
+                    threads[i] = new Thread(() -> {
+                        int start = currentThread * elementsPerThread;
+                        int end = (currentThread + 1) * elementsPerThread;
+                        for(int j = start; j < end; j++) {
+                            if(j != pLine) {
+                                modifiedMatrix[matrixLine][j] = modifiedMatrix[matrixLine][j] - modifiedMatrix[matrixLine][pLine] * modifiedMatrix[pLine][j] / modifiedMatrix[pLine][pLine];
+                            }
+                        }
+                    });
+                    threads[i].start();
+                }
+                for(int column = elementsPerThread * numberOfThreads; column < 2 * numberOfLines; column++ ) {
+                    modifiedMatrix[line][column] = modifiedMatrix[line][column] - modifiedMatrix[line][pivotLine] * modifiedMatrix[pivotLine][column] / modifiedMatrix[pivotLine][pivotLine];
+                }
+                for(int i = 0; i < numberOfThreads; i++) {
+                    threads[i].join();
+                }
+                modifiedMatrix[line][pivotLine] = 0;
+            }*/
         }
         return getInverseMatrix(modifiedMatrix);
     }

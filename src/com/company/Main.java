@@ -16,7 +16,7 @@ public class Main {
         MatrixUtils.writeMatrixToFile(inverseFile, inverse);
     }
 
-    public static void main(String[] args) throws MatrixNotInvertibleException, BadArgumentException, IOException {
+    public static void main(String[] args) throws MatrixNotInvertibleException, BadArgumentException, IOException, InterruptedException {
 
         //testAlgorithm();
 
@@ -30,32 +30,41 @@ public class Main {
 
         //computeInverse(matrixFile, inverseMatrixFile, matrixSize);
 
-        Arrays.asList(5, 10, 25, 50, 100, 150, 200, 300, 500, 750, 1000, 2000, 2500, 3500, 5000).forEach(matrixSize -> {
+        Arrays.asList(5, 10, 15, 20, 25, 50, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000, 1250, 1500, 1750, 2000, 2250, 2500).forEach(matrixSize -> {
             double[][] matrix = MatrixUtils.generateRandomMatrix(matrixSize, matrixSize);
 
-            double result = TimeUtils.getTimeConsumption(() -> {
+            double secventialResult = TimeUtils.getTimeConsumption(() -> {
                 try {
                     MatrixUtils.getMatrixInverseSecvential(matrix);
                 } catch (MatrixNotInvertibleException e) {
                     e.printStackTrace();
                 }
-            }, 10);
+            }, 2);
 
-            System.out.printf("Matrix size: %d, duration: %f ms\n", matrixSize, result);
+            double parallelResult = TimeUtils.getTimeConsumption(() -> {
+                try {
+                    ParallelMatrixInverseComputation parallelMatrixInverseComputation = new ParallelMatrixInverseComputation(matrix);
+                    parallelMatrixInverseComputation.getMatrixInverseParallel();
+                } catch (MatrixNotInvertibleException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }, 2);
+
+            System.out.printf("Matrix size: %d, duration: sequential: %f ms; parallel: parallelResult: %f\n", matrixSize, secventialResult, parallelResult);
 
         });
 
     }
 
-    private static void testAlgorithm() throws MatrixNotInvertibleException, BadArgumentException {
-        /*for(int i = 0; i < 1000; i++) {
+    private static void testAlgorithm() throws MatrixNotInvertibleException, BadArgumentException, InterruptedException {
+        for(int i = 0; i < 1000; i++) {
             int matrixSize = 100;
             double[][] matrix = MatrixUtils.generateRandomMatrix(matrixSize, matrixSize);
-            double[][] inverse = MatrixUtils.getMatrixInverseSecvential(matrix);
+            double[][] inverse = new ParallelMatrixInverseComputation(matrix).getMatrixInverseParallel();
             if( ! MatrixUtils.matrixEquals(MatrixUtils.matrixMultiplication(matrix, inverse), MatrixUtils.getIdentityMatrix(matrixSize))) {
                 throw new RuntimeException("Wrong algorithm");
             }
-        }*/
+        }
     }
 
 }
