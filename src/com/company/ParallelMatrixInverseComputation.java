@@ -2,6 +2,7 @@ package com.company;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class ParallelMatrixInverseComputation {
     private double[][] matrix;
@@ -50,9 +51,11 @@ public class ParallelMatrixInverseComputation {
 
     public double[][] getMatrixInverseParallel() throws MatrixNotInvertibleException, InterruptedException {
 
-        int numberOfThreads = 8;
+        int numberOfThreads = 4;
 
         for(int i = 0; i < matrix.length; i++) {
+
+            ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
 
             if(DoubleUtils.equals(matrix[i][i], 0.0)) {
                 // find column to swap
@@ -73,7 +76,7 @@ public class ParallelMatrixInverseComputation {
             }
 
             // launch threads
-            Thread[] threads = new Thread[numberOfThreads];
+            //Thread[] threads = new Thread[numberOfThreads];
             int elementsPerThread = matrix.length / numberOfThreads;
             for(int workerLine = 0; workerLine < numberOfThreads; workerLine++) {
                 int startLine = workerLine * elementsPerThread;
@@ -81,13 +84,24 @@ public class ParallelMatrixInverseComputation {
                 if(workerLine == numberOfThreads - 1) {
                     endLine = matrix.length;
                 }
-                threads[workerLine] = new Thread(new Worker(i, startLine, endLine));
-                threads[workerLine].start();
+                //threads[workerLine] = new Thread(new Worker(i, startLine, endLine));
+                //threads[workerLine].start();
+
+                executorService.submit(new Worker(i, startLine, endLine));
             }
 
-            for(int workerLine = 0; workerLine < numberOfThreads; workerLine++) {
-                threads[workerLine].join();
+            executorService.shutdown();
+            try {
+                if (!executorService.awaitTermination(800, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executorService.shutdownNow();
             }
+
+            /*for(int workerLine = 0; workerLine < numberOfThreads; workerLine++) {
+                threads[workerLine].join();
+            }*/
 
             for(int line = 0; line < matrix.length; line++) {
                 if(line != i) {

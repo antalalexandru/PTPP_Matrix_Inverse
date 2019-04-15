@@ -50,7 +50,7 @@ public class Main {
                 }
             }, 2);
 
-            System.out.printf("Matrix size: %d, duration: sequential: %f ms; parallel: parallelResult: %f\n", matrixSize, secventialResult, parallelResult);
+            System.out.printf("Matrix size: %d, duration: sequential: %f ms; parallel: %f\n", matrixSize, secventialResult, parallelResult);
 
         });
 
