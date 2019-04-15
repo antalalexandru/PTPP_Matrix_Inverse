@@ -7,7 +7,19 @@ public class ApplicationMain {
 
     public static void main(String[] args) throws MatrixNotInvertibleException, BadArgumentException, IOException, InterruptedException {
 
-        compareAlgorithms();
+        // compareAlgorithms();
+
+        MatrixUtils.printMatrix(
+                new IntensiveMatrixInverseClaulator(
+                        MatrixUtils.addIdentityMatrix(
+                                new double[][]{
+                                        {5, 7, 4},
+                                        {6, 2, 9},
+                                        {5, 7, 3}
+                                }
+                        )
+                ).computeMatrixInverse()
+        );
 
     }
 
