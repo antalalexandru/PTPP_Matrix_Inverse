@@ -47,6 +47,6 @@ public class SequentialMatrixInverseCalculator extends MatrixInverseCalculator i
                 }
             }
         }
-        return MatrixUtils.getInverseMatrix(extendedMatrix);
+        return extendedMatrix;
     }
 }

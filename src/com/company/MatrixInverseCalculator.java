@@ -5,9 +5,9 @@ public abstract class MatrixInverseCalculator {
     protected double[][] extendedMatrix;
     protected int numberOfLines;
 
-    public MatrixInverseCalculator(double[][] matrix) {
-        this.extendedMatrix = MatrixUtils.addIdentityMatrix(matrix);
-        this.numberOfLines = matrix.length;
+    public MatrixInverseCalculator(double[][] extendedMatrix) {
+        this.extendedMatrix = extendedMatrix;
+        this.numberOfLines = extendedMatrix.length;
     }
 
     /**

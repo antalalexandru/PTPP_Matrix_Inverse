@@ -24,27 +24,38 @@ public class ApplicationMain {
 
     private static void compareAlgorithms() {
 
-        final int numberOfTrials = 5;
+        final int numberOfTrials = 1;
 
         Arrays.asList(5, 10, 15, 20, 25, 50, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500).forEach(matrixSize -> {
 
             double[][] matrix = MatrixUtils.generateRandomMatrix(matrixSize, matrixSize);
 
-            double sequentialImplementationTime = TimeUtils.getTimeConsumption(() -> {
-                try {
-                    new SequentialMatrixInverseCalculator(matrix).computeMatrixInverse();
-                } catch (MatrixNotInvertibleException e) {
-                    e.printStackTrace();
-                }
-            }, numberOfTrials);
+            double sequentialImplementationTime = 0;
+            double parallelImplementationTime = 0;
 
-            double parallelImplementationTime = TimeUtils.getTimeConsumption(() -> {
+            for(int i = 0; i < numberOfTrials; i++) {
+                double[][] extendedMatrix = MatrixUtils.addIdentityMatrix(matrix);
+                long start = System.currentTimeMillis();
                 try {
-                    new ParallelMatrixInverseCalculator(matrix).computeMatrixInverse();
+                    new SequentialMatrixInverseCalculator(extendedMatrix).computeMatrixInverse();
                 } catch (MatrixNotInvertibleException e) {
                     e.printStackTrace();
                 }
-            }, numberOfTrials);
+                sequentialImplementationTime += System.currentTimeMillis() - start;
+            }
+            sequentialImplementationTime /= numberOfTrials;
+
+            for(int i = 0; i < numberOfTrials; i++) {
+                double[][] extendedMatrix = MatrixUtils.addIdentityMatrix(matrix);
+                long start = System.currentTimeMillis();
+                try {
+                    new ParallelMatrixInverseCalculator(extendedMatrix).computeMatrixInverse();
+                } catch (MatrixNotInvertibleException e) {
+                    e.printStackTrace();
+                }
+                parallelImplementationTime += System.currentTimeMillis() - start;
+            }
+            parallelImplementationTime /= numberOfTrials;
 
             System.out.printf("Matrix size: %d\nSequential: %.4f ms\nParallel: %.4f ms\n===============================================\n", matrixSize, sequentialImplementationTime, parallelImplementationTime);
 

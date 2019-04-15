@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator implements java.io.Serializable {
 
-    private static final int NUMBER_OF_THREADS = Runtime.getRuntime().availableProcessors();
+    private static final int NUMBER_OF_THREADS = 8; // Runtime.getRuntime().availableProcessors();
 
     public ParallelMatrixInverseCalculator(double[][] matrix) {
         super(matrix);
@@ -24,6 +24,7 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
         for (int pivotLine = 0; pivotLine < numberOfLines; pivotLine++) {
 
             ExecutorService executorService = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+            Thread[] threads = new Thread[NUMBER_OF_THREADS];
 
             // if matrix[line][line] = 0, choose line' where matrix[line'][line] != 0 and swap lines line' with line in matrix
             if (DoubleUtils.equals(extendedMatrix[pivotLine][pivotLine], 0.0)) {
@@ -55,27 +56,34 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
                     endLine++;
                     remainingElements--;
                 }
-                executorService.submit(new Worker(pivotLine, startLine, endLine));
+                // executorService.submit(new Worker(pivotLine, startLine, endLine));
+
+                threads[workerLine] = new Thread(new Worker(pivotLine, startLine, endLine));
+                threads[workerLine].start();
+
                 startLine = endLine;
             }
 
-            executorService.shutdown();
+            for (int workerLine = 0; workerLine < NUMBER_OF_THREADS; workerLine++) {
+                try {
+                    threads[workerLine].join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            /*executorService.shutdown();
             try {
                 if (!executorService.awaitTermination(80, TimeUnit.MILLISECONDS)) {
                     executorService.shutdownNow();
                 }
             } catch (InterruptedException e) {
                 executorService.shutdownNow();
-            }
+            }*/
 
-            for (int line = 0; line < extendedMatrix.length; line++) {
-                if (line != pivotLine) {
-                    extendedMatrix[line][pivotLine] = 0;
-                }
-            }
         }
 
-        return MatrixUtils.getInverseMatrix(extendedMatrix);
+        return extendedMatrix;
     }
 
     private class Worker implements Runnable {
@@ -114,6 +122,7 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
                         extendedMatrix[currentLine][column] = extendedMatrix[currentLine][column] - element * extendedMatrix[pivotLine][column];
                     }
                 }
+                extendedMatrix[currentLine][pivotLine] = 0;
             }
         }
     }
