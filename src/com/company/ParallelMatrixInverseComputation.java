@@ -7,8 +7,9 @@ import java.util.concurrent.TimeUnit;
 public class ParallelMatrixInverseComputation {
     private double[][] matrix;
 
+
     public ParallelMatrixInverseComputation(double[][] matrix) {
-        this.matrix = MatrixUtils.addIdentityMatrix(matrix);
+        this.matrix = matrix;
     }
 
     private class Worker implements Runnable {
@@ -38,7 +39,7 @@ public class ParallelMatrixInverseComputation {
         public void run() {
             for(int currentLine = startLine; currentLine < this.endLine; currentLine++){
                 if (currentLine == pivotLine) {
-                    return;
+                    continue;
                 }
                 for (int column = 0; column < 2 * matrix.length; column++) {
                     if (column != pivotLine) {
@@ -53,7 +54,11 @@ public class ParallelMatrixInverseComputation {
 
         int numberOfThreads = 4;
 
+        /*System.out.println("Initial");
+        MatrixUtils.printMatrix(matrix);*/
+
         for(int i = 0; i < matrix.length; i++) {
+
 
             ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
 
@@ -109,9 +114,12 @@ public class ParallelMatrixInverseComputation {
                 }
             }
 
+            /*System.out.println("Pasul i: ");
+            MatrixUtils.printMatrix(matrix);*/
+
         }
 
-        return MatrixUtils.getInverseMatrix(matrix);
+        return matrix;
     }
 
 }
