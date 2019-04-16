@@ -4,8 +4,17 @@ import java.io.*;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Usual functions applied to double arrays
+ */
 public class MatrixUtils {
 
+    /**
+     * Read and return matrix from given file
+     * @param file path to matrix file
+     * @return double[][] matrix
+     * @throws IOException I/O exception occured
+     */
     public static double[][] readMatrixFromFile(final String file) throws IOException {
         try (Scanner scanner = new Scanner(new File(file))) {
             int numberOfLines = scanner.nextInt();
@@ -19,6 +28,10 @@ public class MatrixUtils {
         }
     }
 
+    /**
+     * Print matrix to console
+     * @param matrix double[][]
+     */
     public static void printMatrix(double[][] matrix) {
         for(int i = 0; i < matrix.length; i++) {
             for(int j = 0; j < matrix[i].length; j++) {
@@ -28,6 +41,12 @@ public class MatrixUtils {
         }
     }
 
+    /**
+     * Writes matrix element to file
+     * @param file file path where matrix will be written
+     * @param matrix matrix elements
+     * @throws IOException I/O exception occured
+     */
     public static void writeMatrixToFile(final String file, double[][] matrix) throws IOException {
         int numberOfLines = matrix.length;
         int numberOfColumns = matrix[0].length;
@@ -45,6 +64,11 @@ public class MatrixUtils {
         }
     }
 
+    /**
+     * Extends matrix A by adding identity matrix (I_n) on its right side
+     * @param initialMatrix [A], A is typeof double[][]
+     * @return [A|I_n], where n = A.length
+     */
     public static double[][] addIdentityMatrix(double[][] initialMatrix) {
         int numberOfLines = initialMatrix.length;
         double[][] modifiedMatrix = new double[numberOfLines][2 * numberOfLines];
@@ -59,7 +83,12 @@ public class MatrixUtils {
         return modifiedMatrix;
     }
 
-    public static double[][] getInverseMatrix(double[][] matrix) {
+    /**
+     * Returns matrix inverse result from extended matrix
+     * @param matrix [A|B]
+     * @return B
+     */
+    public static double[][] getMatrixInverseFromExtendedMatrix(double[][] matrix) {
         int numberOfLines = matrix.length;
         double[][] inverseMatrix = new double[numberOfLines][numberOfLines];
 
@@ -72,6 +101,12 @@ public class MatrixUtils {
         return inverseMatrix;
     }
 
+    /**
+     * Swap lines firstLine and secondLine from given matrix
+     * @param matrix
+     * @param firstLine
+     * @param secondLine
+     */
     public static void swapMatrixLines(double[][] matrix, int firstLine, int secondLine) {
         int numberOfColumns = matrix[firstLine].length;
         for(int column = 0; column < numberOfColumns; column++) {
@@ -81,6 +116,13 @@ public class MatrixUtils {
         }
     }
 
+    /**
+     * Computes matrix multiplication (A * B)
+     * @param A first matrix
+     * @param B second matrix
+     * @return A * B
+     * @throws BadArgumentException if the given matrices could not be multiplied (matrix dimensions mismatch)
+     */
     public static double[][] matrixMultiplication(double[][] A, double[][] B) throws BadArgumentException {
         int m1ColLength = A[0].length;
         int m2RowLength = B.length;
@@ -99,6 +141,11 @@ public class MatrixUtils {
         return mResult;
     }
 
+    /**
+     * Returns identity matrix of given size
+     * @param numberOfLines  matrix number of lines / columns
+     * @return I_n, where n = numberOfLines
+     */
     public static double[][] getIdentityMatrix(int numberOfLines) {
         double[][] matrix = new double[numberOfLines][numberOfLines];
         for(int i = 0; i < numberOfLines; i++) {
@@ -107,6 +154,12 @@ public class MatrixUtils {
         return matrix;
     }
 
+    /**
+     *
+     * @param numberOfLines
+     * @param numberOfColumns
+     * @return
+     */
     public static double[][] generateRandomMatrix(int numberOfLines, int numberOfColumns) {
         double[][] matrix = new double[numberOfLines][numberOfColumns];
         for(int i = 0; i < numberOfLines; i++) {
@@ -117,6 +170,12 @@ public class MatrixUtils {
         return matrix;
     }
 
+    /**
+     *
+     * @param A
+     * @param B
+     * @return
+     */
     public static boolean matrixEquals(double[][] A, double[][] B) {
         if(A.length != B.length || (A.length > 0 && A[0].length != B[0].length)) {
             return false;

@@ -7,19 +7,9 @@ public class ApplicationMain {
 
     public static void main(String[] args) throws MatrixNotInvertibleException, BadArgumentException, IOException, InterruptedException {
 
-        // compareAlgorithms();
+        compareAlgorithms();
 
-        MatrixUtils.printMatrix(
-                new IntensiveMatrixInverseClaulator(
-                        MatrixUtils.addIdentityMatrix(
-                                new double[][]{
-                                        {5, 7, 4},
-                                        {6, 2, 9},
-                                        {5, 7, 3}
-                                }
-                        )
-                ).computeMatrixInverse()
-        );
+        // testParallelAlgorithm();
 
     }
 
@@ -27,7 +17,7 @@ public class ApplicationMain {
         for(int i = 0; i < 1000; i++) {
             int matrixSize = 100;
             double[][] matrix = MatrixUtils.generateRandomMatrix(matrixSize, matrixSize);
-            double[][] inverse = new ParallelMatrixInverseCalculator(matrix).computeMatrixInverse();
+            double[][] inverse = MatrixUtils.getMatrixInverseFromExtendedMatrix(new ParallelMatrixInverseCalculator(MatrixUtils.addIdentityMatrix(matrix)).computeMatrixInverse());
             if( ! MatrixUtils.matrixEquals(MatrixUtils.matrixMultiplication(matrix, inverse), MatrixUtils.getIdentityMatrix(matrixSize))) {
                 throw new RuntimeException("Wrong algorithm");
             }
@@ -36,7 +26,7 @@ public class ApplicationMain {
 
     private static void compareAlgorithms() {
 
-        final int numberOfTrials = 1;
+        final int numberOfTrials = 3;
 
         Arrays.asList(5, 10, 15, 20, 25, 50, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500).forEach(matrixSize -> {
 

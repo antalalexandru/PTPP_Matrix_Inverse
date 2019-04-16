@@ -6,7 +6,9 @@ import java.util.concurrent.TimeUnit;
 
 public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator implements java.io.Serializable {
 
-    private static final int NUMBER_OF_THREADS = 8; // Runtime.getRuntime().availableProcessors();
+    private static int NUMBER_OF_THREADS = 3;
+
+    Thread[] threads = new Thread[NUMBER_OF_THREADS];
 
     public ParallelMatrixInverseCalculator(double[][] matrix) {
         super(matrix);
@@ -23,9 +25,6 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
 
         for (int pivotLine = 0; pivotLine < numberOfLines; pivotLine++) {
 
-            ExecutorService executorService = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
-            Thread[] threads = new Thread[NUMBER_OF_THREADS];
-
             // if matrix[line][line] = 0, choose line' where matrix[line'][line] != 0 and swap lines line' with line in matrix
             if (DoubleUtils.equals(extendedMatrix[pivotLine][pivotLine], 0.0)) {
                 // find line to swap
@@ -41,7 +40,7 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
 
             double pivot = extendedMatrix[pivotLine][pivotLine];
 
-            for (int column = 0; column < 2 * extendedMatrix.length; column++) {
+            for (int column = pivotLine; column < numberOfColumns; column++) {
                 extendedMatrix[pivotLine][column] /= pivot;
             }
 
@@ -50,37 +49,28 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
 
             int startLine = 0;
 
-            for (int workerLine = 0; workerLine < NUMBER_OF_THREADS; workerLine++) {
+            for (int workerId = 0; workerId < NUMBER_OF_THREADS; workerId++) {
+
                 int endLine = startLine + elementsPerThread;
+
                 if (remainingElements > 0) {
                     endLine++;
                     remainingElements--;
                 }
-                // executorService.submit(new Worker(pivotLine, startLine, endLine));
 
-                threads[workerLine] = new Thread(new Worker(pivotLine, startLine, endLine));
-                threads[workerLine].start();
+                threads[workerId] = new Thread(new Worker(pivotLine, startLine, endLine));
+                threads[workerId].start();
 
                 startLine = endLine;
             }
 
-            for (int workerLine = 0; workerLine < NUMBER_OF_THREADS; workerLine++) {
+            for (int workerId = 0; workerId < NUMBER_OF_THREADS; workerId++) {
                 try {
-                    threads[workerLine].join();
+                    threads[workerId].join();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-
-            /*executorService.shutdown();
-            try {
-                if (!executorService.awaitTermination(80, TimeUnit.MILLISECONDS)) {
-                    executorService.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                executorService.shutdownNow();
-            }*/
-
         }
 
         return extendedMatrix;
@@ -88,9 +78,9 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
 
     private class Worker implements Runnable {
 
-        private int pivotLine;
-        private int startLine;
-        private int endLine;
+        private volatile int pivotLine;
+        private volatile int startLine;
+        private volatile int endLine;
 
         private Worker(int pivotLine, int startLine, int endLine) {
             this.pivotLine = pivotLine;
@@ -117,10 +107,9 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
                     continue;
                 }
                 double element = extendedMatrix[currentLine][pivotLine] / extendedMatrix[pivotLine][pivotLine];
-                for (int column = 0; column < 2 * numberOfLines; column++) {
-                    if (column != pivotLine) {
-                        extendedMatrix[currentLine][column] = extendedMatrix[currentLine][column] - element * extendedMatrix[pivotLine][column];
-                    }
+
+                for (int column = pivotLine + 1; column < numberOfColumns; column++) {
+                    extendedMatrix[currentLine][column] = extendedMatrix[currentLine][column] - element * extendedMatrix[pivotLine][column];
                 }
                 extendedMatrix[currentLine][pivotLine] = 0;
             }

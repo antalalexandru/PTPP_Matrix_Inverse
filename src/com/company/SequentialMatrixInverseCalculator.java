@@ -32,16 +32,14 @@ public class SequentialMatrixInverseCalculator extends MatrixInverseCalculator i
                 swapMatrixLines(extendedMatrix, pivotLine, currentLine);
             }
             double pivot = extendedMatrix[pivotLine][pivotLine];
-            for(int column = 0; column < 2 * numberOfLines; column++) {
+            for(int column = pivotLine; column < numberOfColumns; column++) {
                 extendedMatrix[pivotLine][column] /= pivot;
             }
             for(int line = 0; line < numberOfLines; line++) {
                 if(line != pivotLine) {
                     double element = extendedMatrix[line][pivotLine] / extendedMatrix[pivotLine][pivotLine];
-                    for (int column = 0; column < 2 * numberOfLines; column++) {
-                        if (column != pivotLine) {
-                            extendedMatrix[line][column] = extendedMatrix[line][column] - element * extendedMatrix[pivotLine][column];
-                        }
+                    for (int column = pivotLine + 1; column < numberOfColumns; column++) {
+                        extendedMatrix[line][column] = extendedMatrix[line][column] - element * extendedMatrix[pivotLine][column];
                     }
                     extendedMatrix[line][pivotLine] = 0;
                 }
