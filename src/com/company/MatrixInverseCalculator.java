@@ -1,5 +1,6 @@
 package com.company;
 
+@SuppressWarnings("WeakerAccess")
 public abstract class MatrixInverseCalculator {
 
     protected volatile double[][] extendedMatrix;

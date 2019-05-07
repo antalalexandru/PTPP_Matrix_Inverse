@@ -1,7 +1,6 @@
 package com.company;
 
-import java.util.concurrent.Executor;
-
+@SuppressWarnings("WeakerAccess")
 public class MatrixNotInvertibleException extends Exception {
     public MatrixNotInvertibleException() {
         super();

@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Usual functions applied to double arrays
  */
+@SuppressWarnings({"StringConcatenationInLoop", "WeakerAccess", "ManualArrayCopy"})
 public class MatrixUtils {
 
     /**
@@ -33,9 +34,9 @@ public class MatrixUtils {
      * @param matrix double[][]
      */
     public static void printMatrix(double[][] matrix) {
-        for(int i = 0; i < matrix.length; i++) {
-            for(int j = 0; j < matrix[i].length; j++) {
-                System.out.printf("%.4f ", matrix[i][j]);
+        for (double[] line : matrix) {
+            for (double element : line) {
+                System.out.printf("%.4f ", element);
             }
             System.out.println();
         }

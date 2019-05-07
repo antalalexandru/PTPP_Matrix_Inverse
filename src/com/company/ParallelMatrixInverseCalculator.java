@@ -1,31 +1,40 @@
 package com.company;
 
+import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator implements java.io.Serializable {
+/**
+ * Parallel matrix inverse calculator
+ */
+@SuppressWarnings({"WeakerAccess", "unused"})
+public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator implements Serializable {
 
     private int numberOfThreads;
-    private volatile int pivotLine;
+    private int pivotLine;
 
-    private AtomicBoolean aBoolean = new AtomicBoolean(false);
+    private AtomicBoolean finishedAlgorithm = new AtomicBoolean(false);
 
     private CyclicBarrier waitPivotInitializationCyclicBarrier;
     private CyclicBarrier waitThreadsComputationsCyclicBarrier;
 
-    private Thread[] threads;
+    private Set<Thread> threads = new HashSet<>();
 
     public ParallelMatrixInverseCalculator(double[][] matrix, int numberOfThreads) {
         super(matrix);
 
         this.numberOfThreads = numberOfThreads;
-
         this.waitPivotInitializationCyclicBarrier = new CyclicBarrier(numberOfThreads + 1);
         this.waitThreadsComputationsCyclicBarrier = new CyclicBarrier(numberOfThreads + 1);
-        this.threads = new Thread[numberOfThreads];
 
         init();
+    }
+
+    public ParallelMatrixInverseCalculator(double[][] matrix) {
+        this(matrix, Runtime.getRuntime().availableProcessors());
     }
 
     private void init() {
@@ -34,13 +43,14 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
 
         int startLine = 0;
 
+        // threads allocation
         for (int workerId = 0; workerId < numberOfThreads; workerId++) {
             int endLine = startLine + elementsPerThread;
             if (remainingElements > 0) {
                 endLine++;
                 remainingElements--;
             }
-            threads[workerId] = new Thread(new Worker(startLine, endLine));
+            threads.add(new Thread(new Worker(startLine, endLine)));
             startLine = endLine;
         }
     }
@@ -48,8 +58,8 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
     /**
      * Parallel implementation
      *
-     * @return
-     * @throws MatrixNotInvertibleException
+     * @return extended matrix [I_n | matrix^-1]
+     * @throws MatrixNotInvertibleException if matrix is not invertible
      */
     @Override
     public double[][] computeMatrixInverse() throws MatrixNotInvertibleException {
@@ -75,11 +85,9 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
                 extendedMatrix[pivotLine][column] /= pivot;
             }
 
-            if(pivotLine == 0) {
+            if (pivotLine == 0) {
                 // start threads
-                for(int workerId = 0; workerId < numberOfThreads; workerId++) {
-                    threads[workerId].start();
-                }
+                threads.forEach(Thread::start);
             }
 
             try {
@@ -88,20 +96,24 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
                 e.printStackTrace();
             }
 
-            if(pivotLine == numberOfLines - 1) {
-                aBoolean.set(true);
+            if (pivotLine == numberOfLines - 1) {
+
+                // mark algorithm as finished and wait for threads to complete
+                finishedAlgorithm.set(true);
                 try {
                     waitThreadsComputationsCyclicBarrier.await();
                 } catch (InterruptedException | BrokenBarrierException e) {
                     e.printStackTrace();
                 }
-                for(int workerId = 0; workerId < numberOfThreads; workerId++) {
+
+                threads.forEach(thread -> {
                     try {
-                        threads[workerId].join();
+                        thread.join();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                }
+                });
+
             } else {
                 try {
                     waitThreadsComputationsCyclicBarrier.await();
@@ -116,8 +128,8 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
     }
 
     private class Worker implements Runnable {
-        private volatile int startLine;
-        private volatile int endLine;
+        private int startLine;
+        private int endLine;
 
         private Worker(int startLine, int endLine) {
             this.startLine = startLine;
@@ -136,10 +148,8 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
          * @see Thread#run()
          */
         @Override
-        @SuppressWarnings("Duplicates")
         public void run() {
-            while( ! aBoolean.get() ) {
-
+            while (!finishedAlgorithm.get()) {
                 try {
                     waitPivotInitializationCyclicBarrier.await();
                 } catch (InterruptedException | BrokenBarrierException e) {
@@ -148,14 +158,14 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
                 }
 
                 int currentPivotLine = pivotLine;
-                for (int currentLine = startLine; currentLine < this.endLine; currentLine++) {
+                for (int currentLine = startLine; currentLine < endLine; currentLine++) {
                     if (currentLine == currentPivotLine) {
                         continue;
                     }
                     double element = extendedMatrix[currentLine][currentPivotLine] / extendedMatrix[currentPivotLine][currentPivotLine];
 
                     for (int column = currentPivotLine + 1; column < numberOfColumns; column++) {
-                        extendedMatrix[currentLine][column] = extendedMatrix[currentLine][column] - element * extendedMatrix[currentPivotLine][column];
+                        extendedMatrix[currentLine][column] -= element * extendedMatrix[currentPivotLine][column];
                     }
                     extendedMatrix[currentLine][currentPivotLine] = 0;
                 }
@@ -167,7 +177,6 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
                 }
             }
         }
-
     }
 
 }
