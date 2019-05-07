@@ -1,17 +1,48 @@
 package com.company;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator implements java.io.Serializable {
 
-    private static int NUMBER_OF_THREADS = 3;
+    private int numberOfThreads;
+    private volatile int pivotLine;
 
-    Thread[] threads = new Thread[NUMBER_OF_THREADS];
+    private AtomicBoolean aBoolean = new AtomicBoolean(false);
 
-    public ParallelMatrixInverseCalculator(double[][] matrix) {
+    private CyclicBarrier waitPivotInitializationCyclicBarrier;
+    private CyclicBarrier waitThreadsComputationsCyclicBarrier;
+
+    private Thread[] threads;
+
+    public ParallelMatrixInverseCalculator(double[][] matrix, int numberOfThreads) {
         super(matrix);
+
+        this.numberOfThreads = numberOfThreads;
+
+        this.waitPivotInitializationCyclicBarrier = new CyclicBarrier(numberOfThreads + 1);
+        this.waitThreadsComputationsCyclicBarrier = new CyclicBarrier(numberOfThreads + 1);
+        this.threads = new Thread[numberOfThreads];
+
+        init();
+    }
+
+    private void init() {
+        int elementsPerThread = numberOfLines / numberOfThreads;
+        int remainingElements = numberOfLines % numberOfThreads;
+
+        int startLine = 0;
+
+        for (int workerId = 0; workerId < numberOfThreads; workerId++) {
+            int endLine = startLine + elementsPerThread;
+            if (remainingElements > 0) {
+                endLine++;
+                remainingElements--;
+            }
+            threads[workerId] = new Thread(new Worker(startLine, endLine));
+            startLine = endLine;
+        }
     }
 
     /**
@@ -23,7 +54,7 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
     @Override
     public double[][] computeMatrixInverse() throws MatrixNotInvertibleException {
 
-        for (int pivotLine = 0; pivotLine < numberOfLines; pivotLine++) {
+        for (pivotLine = 0; pivotLine < numberOfLines; pivotLine++) {
 
             // if matrix[line][line] = 0, choose line' where matrix[line'][line] != 0 and swap lines line' with line in matrix
             if (DoubleUtils.equals(extendedMatrix[pivotLine][pivotLine], 0.0)) {
@@ -44,46 +75,51 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
                 extendedMatrix[pivotLine][column] /= pivot;
             }
 
-            int elementsPerThread = numberOfLines / NUMBER_OF_THREADS;
-            int remainingElements = numberOfLines % NUMBER_OF_THREADS;
-
-            int startLine = 0;
-
-            for (int workerId = 0; workerId < NUMBER_OF_THREADS; workerId++) {
-
-                int endLine = startLine + elementsPerThread;
-
-                if (remainingElements > 0) {
-                    endLine++;
-                    remainingElements--;
+            if(pivotLine == 0) {
+                // start threads
+                for(int workerId = 0; workerId < numberOfThreads; workerId++) {
+                    threads[workerId].start();
                 }
-
-                threads[workerId] = new Thread(new Worker(pivotLine, startLine, endLine));
-                threads[workerId].start();
-
-                startLine = endLine;
             }
 
-            for (int workerId = 0; workerId < NUMBER_OF_THREADS; workerId++) {
+            try {
+                waitPivotInitializationCyclicBarrier.await();
+            } catch (InterruptedException | BrokenBarrierException e) {
+                e.printStackTrace();
+            }
+
+            if(pivotLine == numberOfLines - 1) {
+                aBoolean.set(true);
                 try {
-                    threads[workerId].join();
-                } catch (InterruptedException e) {
+                    waitThreadsComputationsCyclicBarrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+                for(int workerId = 0; workerId < numberOfThreads; workerId++) {
+                    try {
+                        threads[workerId].join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                try {
+                    waitThreadsComputationsCyclicBarrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
                     e.printStackTrace();
                 }
             }
+
         }
 
         return extendedMatrix;
     }
 
     private class Worker implements Runnable {
-
-        private volatile int pivotLine;
         private volatile int startLine;
         private volatile int endLine;
 
-        private Worker(int pivotLine, int startLine, int endLine) {
-            this.pivotLine = pivotLine;
+        private Worker(int startLine, int endLine) {
             this.startLine = startLine;
             this.endLine = endLine;
         }
@@ -102,18 +138,36 @@ public class ParallelMatrixInverseCalculator extends MatrixInverseCalculator imp
         @Override
         @SuppressWarnings("Duplicates")
         public void run() {
-            for (int currentLine = startLine; currentLine < this.endLine; currentLine++) {
-                if (currentLine == pivotLine) {
-                    continue;
-                }
-                double element = extendedMatrix[currentLine][pivotLine] / extendedMatrix[pivotLine][pivotLine];
+            while( ! aBoolean.get() ) {
 
-                for (int column = pivotLine + 1; column < numberOfColumns; column++) {
-                    extendedMatrix[currentLine][column] = extendedMatrix[currentLine][column] - element * extendedMatrix[pivotLine][column];
+                try {
+                    waitPivotInitializationCyclicBarrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
                 }
-                extendedMatrix[currentLine][pivotLine] = 0;
+
+                int currentPivotLine = pivotLine;
+                for (int currentLine = startLine; currentLine < this.endLine; currentLine++) {
+                    if (currentLine == currentPivotLine) {
+                        continue;
+                    }
+                    double element = extendedMatrix[currentLine][currentPivotLine] / extendedMatrix[currentPivotLine][currentPivotLine];
+
+                    for (int column = currentPivotLine + 1; column < numberOfColumns; column++) {
+                        extendedMatrix[currentLine][column] = extendedMatrix[currentLine][column] - element * extendedMatrix[currentPivotLine][column];
+                    }
+                    extendedMatrix[currentLine][currentPivotLine] = 0;
+                }
+
+                try {
+                    waitThreadsComputationsCyclicBarrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
             }
         }
+
     }
 
 }
